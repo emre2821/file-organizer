@@ -1,0 +1,58 @@
+# Example: Organize GitHub repositories
+# This config scans all your GitHub repos and organizes files by repo and type
+
+organization:
+  base_path: "~/CodeArchive"
+  
+  structure:
+    - "{project}/{category}/{filename}"
+  
+  projects:
+    detect_from:
+      - github_repo_name
+    default: "Uncategorized"
+  
+  categories:
+    code:
+      extensions: [".py", ".js", ".java", ".cpp", ".h", ".c", ".cs", ".go", ".rs", ".rb", ".php", ".swift", ".kt", ".ts", ".jsx", ".tsx", ".html", ".css", ".scss"]
+    config:
+      extensions: [".json", ".yaml", ".yml", ".toml", ".ini", ".env"]
+    documents:
+      extensions: [".md", ".txt", ".pdf", ".docx"]
+    data:
+      extensions: [".csv", ".sql", ".db", ".sqlite"]
+    images:
+      extensions: [".jpg", ".jpeg", ".png", ".gif", ".svg"]
+  
+  naming:
+    template: "{original_name}"
+    lowercase: false
+    replace_spaces: "_"
+
+safety:
+  mode: "copy"
+  create_backup: false  # No need for backups when copying from cloned repos
+  dry_run_default: true
+  conflict_resolution: "rename"
+  preserve_timestamps: true
+
+sources:
+  local:
+    enabled: false
+  
+  github:
+    enabled: true
+    clone_path: "/tmp/file-organizer-github"
+    repos: []  # Empty = scan all accessible repos
+    # Or specify specific repos:
+    # repos:
+    #   - "emre2821/SONGFORGE_AI"
+    #   - "emre2821/EdenOS_Origin"
+  
+  google_drive:
+    enabled: false
+
+logging:
+  level: "INFO"
+  file: "~/.config/file-organizer/organizer.log"
+  transaction_log: "~/.config/file-organizer/transactions.json"

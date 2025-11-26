@@ -1,0 +1,64 @@
+# Example: Organize files by date and type
+# This config is ideal for organizing downloads and general files chronologically
+
+organization:
+  base_path: "~/OrganizedFiles/ByDate"
+  
+  structure:
+    - "{category}/{year}/{month}/{filename}"
+  
+  projects:
+    default: "General"
+  
+  categories:
+    code:
+      extensions: [".py", ".js", ".java", ".cpp", ".h", ".c", ".cs", ".go", ".rs", ".rb", ".php", ".swift", ".kt", ".ts", ".jsx", ".tsx"]
+    documents:
+      extensions: [".pdf", ".docx", ".doc", ".txt", ".md", ".rtf", ".odt"]
+    images:
+      extensions: [".jpg", ".jpeg", ".png", ".gif", ".svg", ".bmp", ".webp"]
+    audio:
+      extensions: [".mp3", ".wav", ".flac", ".ogg", ".m4a"]
+    video:
+      extensions: [".mp4", ".avi", ".mkv", ".mov", ".wmv"]
+    archives:
+      extensions: [".zip", ".tar", ".gz", ".rar", ".7z"]
+    data:
+      extensions: [".json", ".csv", ".xml", ".yaml", ".yml", ".sql"]
+    spreadsheets:
+      extensions: [".xlsx", ".xls", ".ods"]
+  
+  naming:
+    template: "{date}_{original_name}"
+    date_format: "%Y%m%d"
+    lowercase: false
+    replace_spaces: "_"
+
+safety:
+  mode: "copy"
+  create_backup: true
+  backup_path: "~/.config/file-organizer/backups"
+  dry_run_default: true
+  conflict_resolution: "rename"
+  preserve_timestamps: true
+
+sources:
+  local:
+    enabled: true
+    paths:
+      - "~/Downloads"
+    exclude_patterns:
+      - "node_modules"
+      - ".git"
+      - "__pycache__"
+  
+  github:
+    enabled: false
+  
+  google_drive:
+    enabled: false
+
+logging:
+  level: "INFO"
+  file: "~/.config/file-organizer/organizer.log"
+  transaction_log: "~/.config/file-organizer/transactions.json"
