@@ -25,9 +25,17 @@ class Config:
         """Load configuration from file."""
         if not self.config_path.exists():
             self._create_default_config()
-        
+            return
+
         with open(self.config_path, 'r') as f:
-            self.config = yaml.safe_load(f)
+            config_data = yaml.safe_load(f)
+
+        # If the config file exists but is empty/invalid, recreate defaults
+        if not isinstance(config_data, dict):
+            self._create_default_config()
+            return
+
+        self.config = config_data
     
     def save(self) -> None:
         """Save current configuration to file."""
