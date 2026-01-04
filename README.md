@@ -1,12 +1,14 @@
 # File Organizer
 
+> ⚠️ **Safety First**: This tool moves and copies files. Always test with dry-run mode first and backup your data.
+
 A flexible, safe file organization tool that can reorganize files from multiple sources (GitHub repos, Google Drive, local filesystem) based on customizable schemas.
 
 ## Features
 
 - **Multi-Source Support**: Organize files from local filesystem, GitHub repositories, and Google Drive
 - **Customizable Schema**: Define your own folder structure and naming conventions via YAML config
-- **Safety First**: 
+- **Safety First**:
   - Dry-run mode by default
   - Backup creation before operations
   - Transaction logging with undo capability
@@ -14,6 +16,12 @@ A flexible, safe file organization tool that can reorganize files from multiple 
 - **Smart Detection**: Automatically detect projects and categorize files
 - **Rich CLI**: Beautiful terminal interface with progress tracking
 - **Flexible**: Copy or move files, preserve timestamps, handle duplicates
+
+## Requirements
+
+- **Python 3.8+** - Required for modern type hints and features
+- **GitHub CLI** (`gh`) - For GitHub repository scanning (optional)
+- **Google Cloud Project** - For Google Drive access (optional)
 
 ## Installation
 
@@ -32,18 +40,21 @@ pip install -e .
 ## Quick Start
 
 1. **Initialize configuration**:
+
 ```bash
 file-organizer init-config
 ```
 
 This creates a config file at `~/.config/file-organizer/config.yaml`
 
-2. **Edit configuration** to add your source paths:
+1. **Edit configuration** to add your source paths:
+
 ```bash
 nano ~/.config/file-organizer/config.yaml
 ```
 
 Add your local paths:
+
 ```yaml
 sources:
   local:
@@ -53,22 +64,26 @@ sources:
       - "/path/to/your/documents"
 ```
 
-3. **Scan your files**:
+1. **Scan your files**:
+
 ```bash
 file-organizer scan
 ```
 
-4. **Preview organization**:
+1. **Preview organization**:
+
 ```bash
 file-organizer preview
 ```
 
-5. **Organize files** (dry-run by default):
+1. **Organize files** (dry-run by default):
+
 ```bash
 file-organizer organize
 ```
 
-6. **Actually execute** (when you're ready):
+1. **Actually execute** (when you're ready):
+
 ```bash
 file-organizer organize --execute
 ```
@@ -89,6 +104,7 @@ organization:
 ```
 
 Available variables:
+
 - `{project}` - Detected project name
 - `{category}` - File category (code, documents, images, etc.)
 - `{year}`, `{month}`, `{day}` - Date components
@@ -191,6 +207,7 @@ sources:
 ```
 
 **Setup Google Drive**:
+
 1. Create a project in [Google Cloud Console](https://console.cloud.google.com)
 2. Enable Google Drive API
 3. Create OAuth 2.0 credentials
@@ -202,6 +219,7 @@ sources:
 ### Commands
 
 #### `scan`
+
 Scan all configured sources and show file inventory.
 
 ```bash
@@ -210,6 +228,7 @@ file-organizer scan --config /path/to/config.yaml
 ```
 
 #### `preview`
+
 Preview organization changes without executing them.
 
 ```bash
@@ -218,6 +237,7 @@ file-organizer preview --limit 100
 ```
 
 #### `organize`
+
 Execute file organization.
 
 ```bash
@@ -226,6 +246,7 @@ file-organizer organize --execute    # Actually organize files
 ```
 
 #### `undo`
+
 Undo the last organization operation.
 
 ```bash
@@ -233,6 +254,7 @@ file-organizer undo
 ```
 
 #### `history`
+
 Show recent organization operations.
 
 ```bash
@@ -241,6 +263,7 @@ file-organizer history --limit 50
 ```
 
 #### `init-config`
+
 Initialize a new configuration file.
 
 ```bash
@@ -249,6 +272,7 @@ file-organizer init-config --config /path/to/config.yaml
 ```
 
 #### `show-config`
+
 Show current configuration.
 
 ```bash
@@ -276,17 +300,18 @@ sources:
 ```
 
 Result:
+
 ```
 OrganizedFiles/
 ├── documents/
-│   └── 2025-11/
-│       └── 20251125_report.pdf
+│   └── 2026-01/
+│       └── 20260104_report.pdf
 ├── images/
-│   └── 2025-11/
-│       └── 20251125_screenshot.png
+│   └── 2026-01/
+│       └── 20260104_screenshot.png
 └── code/
-    └── 2025-11/
-        └── 20251125_script.py
+    └── 2026-01/
+        └── 20260104_script.py
 ```
 
 ### Example 2: Organize by Project
@@ -312,6 +337,7 @@ sources:
 ```
 
 Result:
+
 ```
 Projects/
 ├── WebApp/
@@ -343,6 +369,7 @@ sources:
 ```
 
 This will:
+
 1. Clone all your GitHub repos
 2. Scan files in each repo
 3. Organize them by repo name (project) and file type (category)
@@ -393,13 +420,17 @@ logger.undo_last_batch()
 ## Safety Features
 
 ### Dry-Run Mode
+
 By default, all operations are in dry-run mode. This means the tool will show you what it *would* do without actually moving or copying files.
 
 ### Backups
+
 When enabled, the tool creates backups of files before moving them. Backups are stored in the configured backup directory.
 
 ### Transaction Logging
+
 Every operation is logged with:
+
 - Timestamp
 - Operation type (copy/move)
 - Source and destination paths
@@ -407,6 +438,7 @@ Every operation is logged with:
 - Error messages (if any)
 
 ### Undo Capability
+
 You can undo the last batch of operations:
 
 ```bash
@@ -414,6 +446,7 @@ file-organizer undo
 ```
 
 This will:
+
 - For copied files: Delete the destination file
 - For moved files: Move the file back to its original location (or restore from backup)
 
@@ -431,33 +464,75 @@ When a file already exists at the destination, you can choose how to handle it:
 ## Troubleshooting
 
 ### GitHub Authentication
+
 If GitHub scanning fails:
+
 ```bash
 gh auth login
 gh auth status
 ```
 
 ### Google Drive Authentication
+
 If Google Drive scanning fails:
+
 1. Check credentials file exists
 2. Delete `token.pickle` and re-authenticate
 3. Verify Google Drive API is enabled in Cloud Console
 
 ### Permission Errors
+
 If you get permission errors:
+
 - Check file/folder permissions
 - Ensure destination path is writable
 - Run with appropriate user permissions
 
 ### Disk Space
+
 The tool checks available disk space before organizing. If you see warnings:
+
 - Free up disk space
 - Change `mode` to "move" instead of "copy"
 - Disable backups (not recommended)
 
+## Testing
+
+The project includes comprehensive tests to ensure safety and functionality:
+
+```bash
+# Run all tests
+python -m pytest test_basic.py -v
+
+# Run with coverage
+python -m pytest test_basic.py --cov=file_organizer --cov-report=html
+```
+
+### Test Coverage
+
+- ✅ Configuration creation and loading
+- ✅ Local file scanning
+- ✅ Organization plan creation
+- ✅ Dry-run mode (no file changes)
+- ✅ Copy operations with safety checks
+- ✅ Backup and undo functionality
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Development Setup
+
+```bash
+# Install in development mode
+pip install -e .
+
+# Run tests
+python -m pytest
+
+# Check code style
+flake8 file_organizer/
+```
 
 ## License
 
@@ -465,7 +540,7 @@ MIT License - feel free to use this tool for any purpose.
 
 ## Author
 
-Created by Emre
+Created by Emre2821
 
 ## Support
 
