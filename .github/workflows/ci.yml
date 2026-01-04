@@ -73,7 +73,7 @@ jobs:
       - name: Verify artifacts
         run: |
           python -m twine check dist/*
-          python -m pip install dist/*.whl
+          python -m pip install --no-deps dist/file_organizer-*.whl
           python -c "import file_organizer as f; print(f'Version: {f.__version__}')"
 
       - name: Upload artifacts
