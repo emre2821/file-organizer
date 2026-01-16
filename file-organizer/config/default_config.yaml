@@ -1,0 +1,149 @@
+organization:
+  base_path: "${HOME}/OrganizedFiles"
+  structure:
+    - "{project}/{category}/{year}/{filename}"
+  projects:
+    detect_from:
+      - github_repo_name
+      - folder_name
+      - custom_patterns
+    patterns: []
+    default: Uncategorized
+  categories:
+    code:
+      extensions:
+        - .py
+        - .js
+        - .java
+        - .cpp
+        - .h
+        - .c
+        - .cs
+        - .go
+        - .rs
+        - .rb
+        - .php
+        - .swift
+        - .kt
+        - .ts
+        - .jsx
+        - .tsx
+    documents:
+      extensions:
+        - .pdf
+        - .docx
+        - .doc
+        - .txt
+        - .md
+        - .rtf
+        - .odt
+        - .tex
+        - .pages
+    images:
+      extensions:
+        - .jpg
+        - .jpeg
+        - .png
+        - .gif
+        - .svg
+        - .bmp
+        - .webp
+        - .ico
+        - .tiff
+        - .psd
+        - .ai
+    audio:
+      extensions:
+        - .mp3
+        - .wav
+        - .flac
+        - .ogg
+        - .m4a
+        - .aac
+        - .wma
+    video:
+      extensions:
+        - .mp4
+        - .avi
+        - .mkv
+        - .mov
+        - .wmv
+        - .flv
+        - .webm
+        - .m4v
+        - .mpeg
+    archives:
+      extensions:
+        - .zip
+        - .tar
+        - .gz
+        - .rar
+        - .7z
+        - .bz2
+        - .xz
+    data:
+      extensions:
+        - .json
+        - .csv
+        - .xml
+        - .yaml
+        - .yml
+        - .sql
+        - .db
+        - .sqlite
+    spreadsheets:
+      extensions:
+        - .xlsx
+        - .xls
+        - .ods
+        - .numbers
+    presentations:
+      extensions:
+        - .pptx
+        - .ppt
+        - .odp
+        - .key
+  naming:
+    template: "{original_name}"
+    date_format: "%Y%m%d"
+    lowercase: false
+    replace_spaces: _
+    max_length: 255
+safety:
+  mode: copy
+  create_backup: true
+  backup_path: "${HOME}/.config/file-organizer/backups"
+  dry_run_default: true
+  conflict_resolution: rename
+  preserve_timestamps: true
+sources:
+  local:
+    enabled: true
+    paths: []
+    exclude_patterns:
+      - node_modules
+      - .git
+      - __pycache__
+      - .venv
+      - venv
+      - .DS_Store
+      - Thumbs.db
+      - .idea
+      - .vscode
+  github:
+    enabled: false
+    clone_path: /tmp/file-organizer-github
+    repos: []
+  google_drive:
+    enabled: false
+    credentials_path: "${HOME}/.config/file-organizer/gdrive_credentials.json"
+    folders: []
+    export_formats:
+      default: application/pdf
+      application/vnd.google-apps.document: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      application/vnd.google-apps.spreadsheet: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      application/vnd.google-apps.presentation: application/vnd.openxmlformats-officedocument.presentationml.presentation
+logging:
+  level: INFO
+  file: "${HOME}/.config/file-organizer/organizer.log"
+  transaction_log: "${HOME}/.config/file-organizer/transactions.json"
