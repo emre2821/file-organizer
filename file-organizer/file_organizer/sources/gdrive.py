@@ -1,7 +1,7 @@
 """Google Drive scanner."""
 
-import os
 import io
+import mimetypes
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -29,7 +29,8 @@ class GoogleDriveScanner:
         self,
         credentials_path: str,
         download_path: str = '/tmp/gdrive-files',
-        exclude_patterns: List[str] = None
+        exclude_patterns: List[str] = None,
+        export_formats: Optional[Dict[str, str]] = None
     ):
         """Initialize Google Drive scanner.
         
@@ -37,6 +38,7 @@ class GoogleDriveScanner:
             credentials_path: Path to OAuth credentials JSON
             download_path: Path where files will be downloaded
             exclude_patterns: List of patterns to exclude
+            export_formats: Mapping of Google Workspace MIME types to export MIME types
         """
         if not GDRIVE_AVAILABLE:
             raise ImportError(
@@ -48,6 +50,7 @@ class GoogleDriveScanner:
         self.download_path = Path(download_path).expanduser().resolve()
         self.download_path.mkdir(parents=True, exist_ok=True)
         self.exclude_patterns = exclude_patterns or []
+        self.export_formats = export_formats or {}
         self.service = None
     
     def authenticate(self) -> None:
@@ -196,12 +199,35 @@ class GoogleDriveScanner:
         Returns:
             FileMetadata or None if file should be skipped
         """
-        # Skip Google Workspace files (Docs, Sheets, etc.) unless downloading
+        # Handle Google Workspace files (Docs, Sheets, etc.)
         if item['mimeType'].startswith('application/vnd.google-apps.'):
             if not download:
                 return None
-            # Would need to export these files - skip for now
-            return None
+
+            export_mime_type = self._get_export_mime_type(item['mimeType'])
+            export_path = self._export_google_app(item, export_mime_type)
+            size = export_path.stat().st_size
+
+            created = datetime.fromisoformat(item['createdTime'].replace('Z', '+00:00'))
+            modified = datetime.fromisoformat(item['modifiedTime'].replace('Z', '+00:00'))
+            extension = export_path.suffix.lower()
+
+            return FileMetadata(
+                source_path=export_path,
+                source_type='gdrive',
+                filename=export_path.name,
+                extension=extension,
+                size=size,
+                created_date=created,
+                modified_date=modified,
+                metadata={
+                    'gdrive_id': item['id'],
+                    'mime_type': item['mimeType'],
+                    'original_mime_type': item['mimeType'],
+                    'export_mime_type': export_mime_type,
+                    'original_filename': item['name']
+                }
+            )
         
         # Get file size
         size = int(item.get('size', 0))
@@ -230,6 +256,52 @@ class GoogleDriveScanner:
             modified_date=modified,
             metadata={'gdrive_id': item['id'], 'mime_type': item['mimeType']}
         )
+
+    def _get_export_mime_type(self, original_mime_type: str) -> str:
+        """Determine export MIME type for a Google Workspace file."""
+        if original_mime_type in self.export_formats:
+            return self.export_formats[original_mime_type]
+        return self.export_formats.get('default', 'application/pdf')
+
+    def _extension_for_mime_type(self, mime_type: str) -> str:
+        """Return file extension for a MIME type."""
+        known_extensions = {
+            'application/pdf': '.pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+            'application/vnd.oasis.opendocument.text': '.odt',
+            'application/vnd.oasis.opendocument.spreadsheet': '.ods',
+            'application/vnd.oasis.opendocument.presentation': '.odp',
+            'text/plain': '.txt',
+            'text/csv': '.csv',
+            'image/png': '.png',
+            'image/jpeg': '.jpg'
+        }
+        if mime_type in known_extensions:
+            return known_extensions[mime_type]
+        extension = mimetypes.guess_extension(mime_type) or ''
+        return extension
+
+    def _export_google_app(self, item: Dict[str, Any], export_mime_type: str) -> Path:
+        """Export a Google Workspace file to the specified MIME type."""
+        extension = self._extension_for_mime_type(export_mime_type)
+        filename = item['name']
+        if extension and not filename.lower().endswith(extension):
+            filename = f"{filename}{extension}"
+
+        request = self.service.files().export(fileId=item['id'], mimeType=export_mime_type)
+
+        file_path = self.download_path / filename
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with io.FileIO(str(file_path), 'wb') as fh:
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
+
+        return file_path
     
     def _download_file(self, file_id: str, filename: str) -> Path:
         """Download a file from Google Drive.

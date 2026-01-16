@@ -86,10 +86,12 @@ class UnifiedScanner:
         credentials_path = self.config.get('sources.google_drive.credentials_path')
         folders = self.config.get('sources.google_drive.folders', [])
         exclude_patterns = self.config.get('sources.local.exclude_patterns', [])
+        export_formats = self.config.get('sources.google_drive.export_formats', {})
         
         scanner = GoogleDriveScanner(
             credentials_path=credentials_path,
-            exclude_patterns=exclude_patterns
+            exclude_patterns=exclude_patterns,
+            export_formats=export_formats
         )
         
         return scanner.scan(folder_ids=folders)
