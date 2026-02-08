@@ -6,3 +6,4 @@ google-auth-httplib2>=0.1.0
 google-auth-oauthlib>=1.0.0
 PyGithub>=2.0.0
 python-dateutil>=2.8.0
+protobuf>=6.33.5 # not directly required, pinned by Snyk to avoid a vulnerability
