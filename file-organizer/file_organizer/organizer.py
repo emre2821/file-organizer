@@ -1,5 +1,6 @@
 """Core file organization engine."""
 
+import os
 import re
 import shutil
 from pathlib import Path
@@ -293,6 +294,10 @@ class FileOrganizer:
             try:
                 # Create destination directory
                 plan.destination_path.parent.mkdir(parents=True, exist_ok=True)
+
+                source_stat = None
+                if self.config.get('safety.preserve_timestamps', True):
+                    source_stat = plan.file_metadata.source_path.stat()
                 
                 # Create backup if enabled
                 if self.config.get('safety.create_backup', False):
@@ -313,11 +318,17 @@ class FileOrganizer:
                 
                 # Preserve timestamps if configured
                 if self.config.get('safety.preserve_timestamps', True):
-                    stat = plan.file_metadata.source_path.stat()
-                    shutil.copystat(
-                        plan.file_metadata.source_path,
-                        plan.destination_path
-                    )
+                    if plan.file_metadata.source_path.exists():
+                        shutil.copystat(
+                            plan.file_metadata.source_path,
+                            plan.destination_path
+                        )
+                    elif source_stat is not None:
+                        os.utime(
+                            plan.destination_path,
+                            (source_stat.st_atime, source_stat.st_mtime)
+                        )
+                        os.chmod(plan.destination_path, source_stat.st_mode)
                 
                 transaction.success = True
                 
