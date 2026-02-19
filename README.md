@@ -53,6 +53,8 @@ pip install -e ./file-organizer
 file-organizer --help
 ```
 
+The `file-organizer` executable is exposed via the package metadata entry point (`console_scripts`) in `file-organizer/setup.py`. If you want to rename the command or add aliases, update that entry and reinstall the package.
+
 Available commands:
 
 - `scan` — scan enabled sources and print counts/sizes
@@ -150,13 +152,13 @@ Supported placeholders in `organization.structure` / naming templates:
 
 ## Development
 
-Run tests from repository root (example):
+Temporary test command workaround (current duplicate-tree state):
 
 ```bash
 pytest -q tests test_basic.py --ignore=file-organizer/test_basic.py
 ```
 
-If you work on packaging/imports, align around a single project root to avoid duplicate module names.
+This ignore flag is only a stopgap while both project trees exist. A better long-term fix is to resolve duplicate test-module discovery (for example, via `pytest.ini`/`pyproject.toml` test path configuration or by unifying the repository into a single source tree).
 
 ## License
 
