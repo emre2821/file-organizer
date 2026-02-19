@@ -1,547 +1,163 @@
 # File Organizer
 
-> ⚠️ **Safety First**: This tool moves and copies files. Always test with dry-run mode first and backup your data.
+A configurable CLI for scanning files from multiple sources and organizing them into a destination structure.
 
-A flexible, safe file organization tool that can reorganize files from multiple sources (GitHub repos, Google Drive, local filesystem) based on customizable schemas.
+> **Safety default:** `organize` runs in dry-run mode unless you pass `--execute`.
 
-## Features
+## Current repository state
 
-- **Multi-Source Support**: Organize files from local filesystem, GitHub repositories, and Google Drive
-- **Customizable Schema**: Define your own folder structure and naming conventions via YAML config
-- **Safety First**:
-  - Dry-run mode by default
-  - Backup creation before operations
-  - Transaction logging with undo capability
-  - Conflict resolution strategies
-- **Smart Detection**: Automatically detect projects and categorize files
-- **Rich CLI**: Beautiful terminal interface with progress tracking
-- **Flexible**: Copy or move files, preserve timestamps, handle duplicates
+This repository currently contains two project trees:
+
+- The **active Python package code** is under `file-organizer/file_organizer/`.
+- There is also a duplicated top-level layout (`README.md`, `tests/`, `setup.py`, etc.).
+
+For practical usage today, treat `file-organizer/` as the runnable package root.
+
+## Features (implemented)
+
+- Local filesystem scanning (recursive).
+- Optional GitHub scanning via `gh` CLI + local clone/pull.
+- Optional Google Drive scanning via Drive API.
+- Rule-based destination paths using templates.
+- Category detection by extension.
+- Naming templates (date/project/category/original name placeholders).
+- Conflict handling: `skip`, `rename`, `prompt`, `keep_newest`, `keep_oldest`, `overwrite`.
+- Copy or move operations.
+- Transaction logging and `undo` for the last batch.
+- Rich terminal output for scan/preview/history.
 
 ## Requirements
 
-- **Python 3.8+** - Required for modern type hints and features
-- **GitHub CLI** (`gh`) - For GitHub repository scanning (optional)
-- **Google Cloud Project** - For Google Drive access (optional)
+- Python 3.8+
+- For GitHub source:
+  - `gh` authenticated (`gh auth login`)
+  - `git`
+- For Google Drive source:
+  - `google-api-python-client`
+  - `google-auth-httplib2`
+  - `google-auth-oauthlib`
+  - OAuth credentials JSON
 
 ## Installation
 
+From repository root:
+
 ```bash
-# Clone the repository
-git clone https://github.com/emre2821/file-organizer.git
-cd file-organizer
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Install the package
-pip install -e .
+pip install -e ./file-organizer
 ```
 
-## Quick Start
+## CLI commands
 
-1. **Initialize configuration**:
+```bash
+file-organizer --help
+```
+
+Available commands:
+
+- `scan` — scan enabled sources and print counts/sizes
+- `preview` — generate and display planned organization changes
+- `organize` — execute plan (dry-run by default)
+- `undo` — undo last logged operation batch
+- `history` — show recent transactions
+- `init-config` — create config file
+- `show-config` — print loaded config
+
+## Quick start
+
+1. Initialize config:
 
 ```bash
 file-organizer init-config
 ```
 
-This creates a config file at `~/.config/file-organizer/config.yaml`
+2. Edit config (default path: `~/.config/file-organizer/config.yaml`) and set at least:
 
-1. **Edit configuration** to add your source paths:
+- `organization.base_path`
+- `sources.local.paths`
 
-```bash
-nano ~/.config/file-organizer/config.yaml
-```
-
-Add your local paths:
-
-```yaml
-sources:
-  local:
-    enabled: true
-    paths:
-      - "/path/to/your/downloads"
-      - "/path/to/your/documents"
-```
-
-1. **Scan your files**:
+3. Scan and preview:
 
 ```bash
 file-organizer scan
-```
-
-1. **Preview organization**:
-
-```bash
 file-organizer preview
 ```
 
-1. **Organize files** (dry-run by default):
-
-```bash
-file-organizer organize
-```
-
-1. **Actually execute** (when you're ready):
+4. Execute when ready:
 
 ```bash
 file-organizer organize --execute
 ```
 
-## Configuration
+## Configuration overview
 
-The configuration file uses YAML format and allows you to customize every aspect of file organization.
+Main sections:
 
-### Folder Structure
+- `organization`
+  - `base_path`
+  - `structure` (first template string is used)
+  - `projects.patterns`
+  - `categories`
+  - `naming`
+- `safety`
+  - `mode`: `copy` or `move`
+  - `create_backup`
+  - `backup_path`
+  - `dry_run_default`
+  - `conflict_resolution`
+  - `preserve_timestamps`
+- `sources`
+  - `local`
+  - `github`
+  - `google_drive`
+- `logging`
+  - `transaction_log`
 
-Define your folder structure using template variables:
+### Template variables
 
-```yaml
-organization:
-  base_path: "/path/to/organized/files"
-  structure:
-    - "{project}/{category}/{year}/{filename}"
-```
+Supported placeholders in `organization.structure` / naming templates:
 
-Available variables:
+- `{project}`
+- `{category}`
+- `{year}` `{month}` `{day}`
+- `{filename}`
+- `{original_name}`
+- `{extension}`
+- `{date}` (for naming template)
 
-- `{project}` - Detected project name
-- `{category}` - File category (code, documents, images, etc.)
-- `{year}`, `{month}`, `{day}` - Date components
-- `{filename}` - Processed filename
-- `{original_name}` - Original filename
-- `{extension}` - File extension
+## Source-specific notes
 
-### Project Detection
+### Local
 
-Automatically detect projects based on patterns:
+- Scans configured files/directories recursively.
+- `exclude_patterns` are matched against names and path strings.
 
-```yaml
-organization:
-  projects:
-    patterns:
-      - name: "SONGFORGE_AI"
-        keywords: ["songforge", "music", "ai"]
-      - name: "EdenOS"
-        keywords: ["edenos", "daemon", "eden"]
-    default: "Uncategorized"
-```
+### GitHub
 
-### File Categories
+- If `sources.github.repos` is empty, scanner requests up to 1000 repos from `gh repo list`.
+- Repositories are cloned/pulled to `sources.github.clone_path`.
 
-Files are automatically categorized by extension:
+### Google Drive
 
-- **code**: `.py`, `.js`, `.java`, `.cpp`, etc.
-- **documents**: `.pdf`, `.docx`, `.txt`, `.md`, etc.
-- **images**: `.jpg`, `.png`, `.gif`, `.svg`, etc.
-- **audio**: `.mp3`, `.wav`, `.flac`, etc.
-- **video**: `.mp4`, `.avi`, `.mkv`, etc.
-- **archives**: `.zip`, `.tar`, `.gz`, etc.
-- **data**: `.json`, `.csv`, `.xml`, etc.
+- Scanner authenticates via OAuth and can recurse folder IDs.
+- **Current behavior:** unified scanning calls Drive scan with `download=False`, so returned file paths are virtual local paths for most files and may not exist on disk during organization execution. In practice, Drive integration is reliable for inventory/preview, but execution may require code/config adjustments.
 
-You can customize categories in the config file.
+## Known limitations
 
-### Naming Convention
+- Repository layout is duplicated at root and `file-organizer/`, which can confuse imports/test discovery.
+- Running `pytest` at repo root currently hits test-module name collisions (`test_basic.py` appears in both trees).
+- GitHub scanner error handling has edge-case issues when `gh` is missing.
 
-Customize how files are named:
+## Development
 
-```yaml
-organization:
-  naming:
-    template: "{date}_{original_name}"
-    date_format: "%Y%m%d"
-    lowercase: false
-    replace_spaces: "_"
-    max_length: 255
-```
-
-### Safety Settings
-
-```yaml
-safety:
-  mode: "copy"  # or "move"
-  create_backup: true
-  backup_path: "/path/to/backups"
-  dry_run_default: true
-  conflict_resolution: "rename"  # skip, rename, prompt, keep_newest, keep_oldest, overwrite
-  preserve_timestamps: true
-```
-
-### Sources
-
-#### Local Filesystem
-
-```yaml
-sources:
-  local:
-    enabled: true
-    paths:
-      - "/path/to/downloads"
-      - "/path/to/documents"
-    exclude_patterns:
-      - "node_modules"
-      - ".git"
-      - "__pycache__"
-```
-
-#### GitHub
-
-```yaml
-sources:
-  github:
-    enabled: true
-    clone_path: "/tmp/file-organizer-github"
-    repos: []  # Empty = all accessible repos, or specify: ["owner/repo1", "owner/repo2"]
-```
-
-**Note**: GitHub CLI (`gh`) must be installed and authenticated.
-
-#### Google Drive
-
-```yaml
-sources:
-  google_drive:
-    enabled: true
-    credentials_path: "~/.config/file-organizer/gdrive_credentials.json"
-    folders: []  # Empty = root, or specify folder IDs
-```
-
-**Setup Google Drive**:
-
-1. Create a project in [Google Cloud Console](https://console.cloud.google.com)
-2. Enable Google Drive API
-3. Create OAuth 2.0 credentials
-4. Download credentials JSON and save to the path specified in config
-5. First run will open browser for authentication
-
-## Usage
-
-### Commands
-
-#### `scan`
-
-Scan all configured sources and show file inventory.
+Run tests from repository root (example):
 
 ```bash
-file-organizer scan
-file-organizer scan --config /path/to/config.yaml
+pytest -q tests test_basic.py --ignore=file-organizer/test_basic.py
 ```
 
-#### `preview`
-
-Preview organization changes without executing them.
-
-```bash
-file-organizer preview
-file-organizer preview --limit 100
-```
-
-#### `organize`
-
-Execute file organization.
-
-```bash
-file-organizer organize              # Dry-run (safe, no changes)
-file-organizer organize --execute    # Actually organize files
-```
-
-#### `undo`
-
-Undo the last organization operation.
-
-```bash
-file-organizer undo
-```
-
-#### `history`
-
-Show recent organization operations.
-
-```bash
-file-organizer history
-file-organizer history --limit 50
-```
-
-#### `init-config`
-
-Initialize a new configuration file.
-
-```bash
-file-organizer init-config
-file-organizer init-config --config /path/to/config.yaml
-```
-
-#### `show-config`
-
-Show current configuration.
-
-```bash
-file-organizer show-config
-```
-
-## Examples
-
-### Example 1: Organize Downloads by Type and Date
-
-```yaml
-organization:
-  base_path: "~/OrganizedFiles"
-  structure:
-    - "{category}/{year}-{month}/{filename}"
-  naming:
-    template: "{date}_{original_name}"
-    date_format: "%Y%m%d"
-
-sources:
-  local:
-    enabled: true
-    paths:
-      - "~/Downloads"
-```
-
-Result:
-
-```
-OrganizedFiles/
-├── documents/
-│   └── 2026-01/
-│       └── 20260104_report.pdf
-├── images/
-│   └── 2026-01/
-│       └── 20260104_screenshot.png
-└── code/
-    └── 2026-01/
-        └── 20260104_script.py
-```
-
-### Example 2: Organize by Project
-
-```yaml
-organization:
-  base_path: "~/Projects"
-  structure:
-    - "{project}/{category}/{filename}"
-  projects:
-    patterns:
-      - name: "WebApp"
-        keywords: ["webapp", "frontend", "backend"]
-      - name: "DataScience"
-        keywords: ["ml", "data", "analysis"]
-
-sources:
-  local:
-    enabled: true
-    paths:
-      - "~/Documents"
-      - "~/Downloads"
-```
-
-Result:
-
-```
-Projects/
-├── WebApp/
-│   ├── code/
-│   │   ├── app.js
-│   │   └── index.html
-│   └── documents/
-│       └── design.pdf
-└── DataScience/
-    ├── code/
-    │   └── analysis.py
-    └── data/
-        └── dataset.csv
-```
-
-### Example 3: GitHub Repos Organization
-
-```yaml
-organization:
-  base_path: "~/CodeArchive"
-  structure:
-    - "{project}/{category}/{filename}"
-
-sources:
-  github:
-    enabled: true
-    clone_path: "/tmp/github-scan"
-    repos: []  # Scans all your repos
-```
-
-This will:
-
-1. Clone all your GitHub repos
-2. Scan files in each repo
-3. Organize them by repo name (project) and file type (category)
-
-## Advanced Usage
-
-### Custom Project Detection
-
-Add custom patterns to automatically detect projects:
-
-```python
-from file_organizer import Config
-
-config = Config()
-config.add_project_pattern("MyProject", ["myproject", "proj"])
-```
-
-### Programmatic Usage
-
-```python
-from file_organizer import Config, UnifiedScanner, FileOrganizer, TransactionLogger
-
-# Load config
-config = Config()
-
-# Scan files
-scanner = UnifiedScanner(config)
-files = scanner.get_all_files()
-
-# Create organization plan
-organizer = FileOrganizer(config)
-plans = organizer.create_organization_plan(files)
-
-# Execute (dry-run)
-transactions = organizer.execute_plan(plans, dry_run=True)
-
-# Execute for real
-transactions = organizer.execute_plan(plans, dry_run=False)
-
-# Log transactions
-logger = TransactionLogger(config)
-logger.log_transactions(transactions)
-
-# Undo if needed
-logger.undo_last_batch()
-```
-
-## Safety Features
-
-### Dry-Run Mode
-
-By default, all operations are in dry-run mode. This means the tool will show you what it *would* do without actually moving or copying files.
-
-### Backups
-
-When enabled, the tool creates backups of files before moving them. Backups are stored in the configured backup directory.
-
-### Transaction Logging
-
-Every operation is logged with:
-
-- Timestamp
-- Operation type (copy/move)
-- Source and destination paths
-- Success/failure status
-- Error messages (if any)
-
-### Undo Capability
-
-You can undo the last batch of operations:
-
-```bash
-file-organizer undo
-```
-
-This will:
-
-- For copied files: Delete the destination file
-- For moved files: Move the file back to its original location (or restore from backup)
-
-### Conflict Resolution
-
-When a file already exists at the destination, you can choose how to handle it:
-
-- **skip**: Don't process the file
-- **rename**: Add a numeric suffix (e.g., `file_1.txt`)
-- **keep_newest**: Only copy if the new file is newer
-- **keep_oldest**: Only copy if the new file is older
-- **overwrite**: Replace the existing file
-- **prompt**: Ask the user what to do (interactive mode)
-
-## Troubleshooting
-
-### GitHub Authentication
-
-If GitHub scanning fails:
-
-```bash
-gh auth login
-gh auth status
-```
-
-### Google Drive Authentication
-
-If Google Drive scanning fails:
-
-1. Check credentials file exists
-2. Delete `token.pickle` and re-authenticate
-3. Verify Google Drive API is enabled in Cloud Console
-
-### Permission Errors
-
-If you get permission errors:
-
-- Check file/folder permissions
-- Ensure destination path is writable
-- Run with appropriate user permissions
-
-### Disk Space
-
-The tool checks available disk space before organizing. If you see warnings:
-
-- Free up disk space
-- Change `mode` to "move" instead of "copy"
-- Disable backups (not recommended)
-
-## Testing
-
-The project includes comprehensive tests to ensure safety and functionality:
-
-```bash
-# Run all tests
-python -m pytest test_basic.py -v
-
-# Run with coverage
-python -m pytest test_basic.py --cov=file_organizer --cov-report=html
-```
-
-### Test Coverage
-
-- ✅ Configuration creation and loading
-- ✅ Local file scanning
-- ✅ Organization plan creation
-- ✅ Dry-run mode (no file changes)
-- ✅ Copy operations with safety checks
-- ✅ Backup and undo functionality
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-### Development Setup
-
-```bash
-# Install in development mode
-pip install -e .
-
-# Run tests
-python -m pytest
-
-# Check code style
-flake8 file_organizer/
-```
+If you work on packaging/imports, align around a single project root to avoid duplicate module names.
 
 ## License
 
-MIT License - feel free to use this tool for any purpose.
-
-## Author
-
-Created by Emre2821
-
-## Support
-
-For issues, questions, or suggestions, please open an issue on GitHub.
+MIT (see `LICENSE`).
